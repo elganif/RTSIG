@@ -180,34 +180,53 @@ public:
                 if(GetKey(olc::L).bHeld)
                     scale += 0.001f*time;
                 
-                //~ if(GetKey(olc::UP).bHeld)
-                    //~ testSoldier->location.y -= time*speed;
-                //~ if(GetKey(olc::DOWN).bHeld)
-                    //~ testSoldier->location.y += time*speed;
-                //~ if(GetKey(olc::LEFT).bHeld)
-                    //~ testSoldier->location.x -= time*speed;
-                //~ if(GetKey(olc::RIGHT).bHeld)
-                    //~ testSoldier->location.x += time*speed;
-                    
-                    
                 if(GetKey(olc::UP).bHeld)
-                    buildVectorField(northForces,westDistVec);
+                    testSoldier->location.y -= time*speed;
                 if(GetKey(olc::DOWN).bHeld)
-                    buildVectorField(southForces,westDistVec);
+                    testSoldier->location.y += time*speed;
                 if(GetKey(olc::LEFT).bHeld)
-                    buildVectorField(westForces,westDistVec);
+                    testSoldier->location.x -= time*speed;
                 if(GetKey(olc::RIGHT).bHeld)
-                    buildVectorField(eastForces,westDistVec);
+                    testSoldier->location.x += time*speed;
+                    
+                    
+                //~ if(GetKey(olc::UP).bHeld)
+                    //~ buildVectorField(northForces,westDistVec);
+                //~ if(GetKey(olc::DOWN).bHeld)
+                    //~ buildVectorField(southForces,westDistVec);
+                //~ if(GetKey(olc::LEFT).bHeld)
+                    //~ buildVectorField(westForces,westDistVec);
+                //~ if(GetKey(olc::RIGHT).bHeld)
+                    //~ buildVectorField(eastForces,westDistVec);
                 if(GetKey(olc::Z).bPressed)
                     walking = !walking;
                     
                 testSoldier->checkCollide(testSoldiertwo);
                 testSoldiertwo->checkCollide(testSoldier);
+                
+                testSoldier->checkCollide(northForces);
+                testSoldiertwo->checkCollide(northForces);
+                
+                //~ testSoldier->checkCollide(southForces);
+                //~ testSoldiertwo->checkCollide(southForces);
+                
+                //~ testSoldier->checkCollide(westForces);
+                //~ testSoldiertwo->checkCollide(westForces);
+                
+                //~ testSoldier->checkCollide(eastForces);
+                //~ testSoldiertwo->checkCollide(eastForces);
+                
+                
                 testSoldier->draw();
                 testSoldiertwo->draw();
                 if (walking){
                     DrawString(5,70,testSoldier->update(time),olc::WHITE,1.0f);
                     testSoldiertwo->update(time);
+                } else {
+                    DrawString(5,70, to_string(testSoldier->location.x) +" " +to_string(testSoldier->location.y),olc::WHITE,1.0f);
+                    DrawString(5,80, to_string(northForces->location.x) +" " +to_string(northForces->location.y),olc::WHITE,1.0f);
+                    
+                    
                 }
                     
                 DrawString(5,15,to_string(scale),olc::WHITE,1.0f);
@@ -404,7 +423,7 @@ public:
     }
     
     void initializeBases(){
-        olc::vf2d mainBaseSize = {1.5,1.5};
+        olc::vf2d mainBaseSize = {1.5f,1.5f};
         olc::vf2d northBaseLoc = localMinima(floor(arenaSize * 0.3f),floor(arenaSize * 0.05f),ceil(arenaSize * 0.7f),floor(arenaSize * 0.2f));
         northForces = new Capital(northBaseLoc,mainBaseSize,&viewer,olc::RED);
         olc::vf2d southBaseLoc = localMinima(floor(arenaSize * 0.3f),floor(arenaSize * 0.8f),ceil(arenaSize * 0.7f),floor(arenaSize * 0.95f));

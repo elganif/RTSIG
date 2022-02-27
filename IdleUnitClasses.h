@@ -9,6 +9,7 @@ class Unit{
         olc::vf2d location;
         olc::TileTransformedView* transview;
         olc::Pixel TeamColour;
+        olc::vf2d area;
         float size;
         Shape shape;
         vector<Unit*> soldiers;
@@ -35,6 +36,7 @@ class Soldier : public Unit{
             transview = newtransview;
             this->TeamColour = TeamColour;
             target = team;
+            shape = CIRCLE;
             
         }
         
@@ -98,18 +100,25 @@ class Soldier : public Unit{
         }
         
         olc::vf2d checkCollide(Unit* other) override{
-            if(other->shape = SQUARE){
+            if(other->shape == SQUARE){
                 //building collision check
-                minX = other->location.x - (other->area.x * 0.5f) - this->size;
-                maxX = other->location.x + (other->area.x * 0.5f) + this->size;
-                minY = other->location.y - (other->area.y * 0.5f) - this->size;
-                maxY = other->location.y + (other->area.y * 0.5f) + this->size;
+                olc::vf2d center = other->location;
+                olc::vf2d topleft = other->location - (other->area * 0.5f);
+                olc::vf2d botright = other->location + (other->area * 0.5f);
                 
+                olc::vf2d nearest = {min(max(this->location.x,topleft.x),botright.x),
+                                     min(max(this->location.y,topleft.y),botright.y)};
                 
+                olc::vf2d dist = nearest - this->location;
+                float colide = this->size - dist.mag();
+                if (isnan(colide)) colide = 0;
                 
+                if (colide > 0)
+                    this->location -= dist.norm() * colide;
                 
+                return {0,0};
             }
-            if(other->shape  = CIRCLE){
+            if(other->shape == CIRCLE){
                 // Unit collision Checking
                 float colDist = other->size + this->size;
                 float xDist = abs(other->location.x - this->location.x);
@@ -119,8 +128,8 @@ class Soldier : public Unit{
                     return {0,0};
                 olc::vf2d direction = this->location - other->location;
                 float overlap = colDist - direction.mag();
-                this->location += direction.norm() * overlap;
-                
+                this->location += direction.norm() * overlap * 0.5f;
+                other->location -= direction.norm() * overlap * 0.5f;
                 
                 return direction.norm() * overlap;
                 
@@ -132,7 +141,6 @@ class Soldier : public Unit{
 
 class Building : public Unit{
     public:
-        olc::vf2d area;
         Building(olc::vf2d newlocation,olc::vf2d newArea,olc::TileTransformedView* newtransview,olc::Pixel TeamColour){
             location = newlocation;
             area = newArea;
@@ -160,7 +168,6 @@ class Building : public Unit{
 
 class Capital : public Unit{
     public:
-        olc::vf2d area;
         
         vector<Unit*> buildings;
         
@@ -172,6 +179,7 @@ class Capital : public Unit{
             this->TeamColour = TeamColour;
             shape = SQUARE;
         }
+        
         void draw() override{
             transview->FillRect(location-(area*0.5f),area,TeamColour);
             for(int u = 0; u < buildings.size();u++){
