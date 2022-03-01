@@ -32,7 +32,8 @@ public:
     OSN::Noise<2> perlin;
     
     olc::TileTransformedView viewer;
-    
+    int PlayLayerDraw = 0;
+    int UnitLayerDraw = 0;
     
 public:
     bool OnUserCreate() override
@@ -40,7 +41,11 @@ public:
         // Called once at the start, so create things here
         time = 0;
         viewer = olc::TileTransformedView({ScreenWidth(),ScreenHeight()},{arenaSize,arenaSize});
-        Clear(olc::BLACK);
+        UnitLayerDraw = CreateLayer();
+        PlayLayerDraw = CreateLayer();
+        EnableLayer(UnitLayerDraw,true);
+        EnableLayer(PlayLayerDraw,true);
+        //Clear(olc::BLACK);
         return true;
     }
 
@@ -48,7 +53,8 @@ public:
     {
         // called once per frame
         time = fElapsedTime;
-        Clear(olc::BLACK);
+        
+        Clear(olc::BLANK);
         switch(gameState){
             case MENU:
                 MainMenu();
@@ -119,10 +125,11 @@ public:
     }
     
     void drawGame(){
-        checkPanZoom();
+        
         olc::vf2d mover = {1,0};
         switch(playState){
             case MAP:
+                checkPanZoom();
                 for(int j = 0;j<5;j++){
                     for(int i = 0;i<5;i++){
                         if(viewerButton("P",i*10,j*10,10,10,olc::RED,olc::YELLOW,olc::BLUE,olc::DARK_BLUE)){
@@ -133,10 +140,10 @@ public:
                 }
                 break;
             case LOADING:
-                
+                Clear(olc::BLACK);
+                DrawString(10,10,"LOADING",olc::RED,20);
                 // Build terrain Map
                 terrainBuild();
-                
                 // Locate and Place Capital Bases
                 initializeBases();
                 
@@ -155,13 +162,22 @@ public:
                 
                 testSoldier = new Soldier(localMinima(25,25,75,75) + mover,0.2f,olc::Pixel(250,0,250),&viewer,WEST);
                 testSoldiertwo = new Soldier(localMinima(25,25,75,75),0.2f,olc::Pixel(250,0,250),&viewer,WEST);
-                
+                SetDrawTarget(PlayLayerDraw);
+                    Clear(olc::VERY_DARK_BLUE);
+                    terrainDraw();
+                    SetDrawTarget(nullptr);
                 playState = ARENA;
                 break;
             case ARENA:
-                //terrainBuild(); // For adjusting map math
-                terrainDraw();
-                
+                //terrainBuild(); // For debuggin map math
+                if(checkPanZoom()){
+                    SetDrawTarget(PlayLayerDraw);
+                    Clear(olc::VERY_DARK_BLUE);
+                    terrainDraw();
+                    SetDrawTarget(nullptr);
+                }
+                SetDrawTarget(UnitLayerDraw);
+                Clear(olc::BLANK);
                 westForces->draw();
                 northForces->draw();    
                 eastForces->draw();
@@ -239,7 +255,7 @@ public:
                 }
                 
                 //end debug
-                
+                SetDrawTarget(nullptr);
                 break;
         }
     }
@@ -512,12 +528,29 @@ public:
         return;
     }
     
-    void checkPanZoom(){
-        if (GetMouse(2).bPressed) viewer.StartPan(GetMousePos());
-        if (GetMouse(2).bHeld) viewer.UpdatePan(GetMousePos());
-        if (GetMouse(2).bReleased) viewer.EndPan(GetMousePos());
-        if (GetMouseWheel() > 0) viewer.ZoomAtScreenPos(2.0f, GetMousePos());
-        if (GetMouseWheel() < 0) viewer.ZoomAtScreenPos(0.5f, GetMousePos());
+    bool checkPanZoom(){
+        bool updated = false;
+        if (GetMouse(2).bPressed){ 
+            viewer.StartPan(GetMousePos());
+            updated = true;
+        }
+        if (GetMouse(2).bHeld){
+            viewer.UpdatePan(GetMousePos());
+            updated = true;
+        }
+        if (GetMouse(2).bReleased){
+            viewer.EndPan(GetMousePos());
+            updated = true;
+        }
+        if (GetMouseWheel() > 0){
+            viewer.ZoomAtScreenPos(2.0f, GetMousePos());
+            updated = true;
+        }
+        if (GetMouseWheel() < 0){
+            viewer.ZoomAtScreenPos(0.5f, GetMousePos());
+            updated = true;
+        }
+        return updated;
     }
     
     void memoryCleanup(){

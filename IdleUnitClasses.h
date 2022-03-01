@@ -17,6 +17,7 @@ class Unit{
         virtual void draw(){};
         virtual string update(float t){return "";};
         virtual olc::vf2d checkCollide(Unit* other){return {0,0};};
+
         
     
 };
@@ -25,7 +26,7 @@ class Soldier : public Unit{
     public:
     
         Team target;
-        float (* vectorTable);
+        //float (* vectorTable);
         
         Soldier(olc::vf2d newlocation,float newSize,olc::Pixel TeamColour,
             olc::TileTransformedView* newtransview,Team team)
@@ -47,8 +48,8 @@ class Soldier : public Unit{
             // move & attack according to AI
             //float (* vectorTable)[arenaSize][arenaSize] = &northDistVec;
             
-            int X = int(round(location.x));
-            int Y = int(round(location.y));
+            int X = min(max(int(round(location.x)),1),arenaSize-1);
+            int Y = min(max(int(round(location.y)),1),arenaSize-1);
             float here = 0;
             float n = 0;
             float s = 0;
