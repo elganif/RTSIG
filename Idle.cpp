@@ -52,6 +52,7 @@ public:
     bool OnUserUpdate(float fElapsedTime) override
     {
         // called once per frame
+        
         time = fElapsedTime;
         
         Clear(olc::BLANK);
@@ -67,7 +68,8 @@ public:
             case EXIT:
                 memoryCleanup();
                 return false; 
-            }
+        }
+        
         return true;
     }
     
@@ -170,19 +172,21 @@ public:
                 break;
             case ARENA:
                 //terrainBuild(); // For debuggin map math
-                if(checkPanZoom()){
+                checkPanZoom();
+                {//if(checkPanZoom()){
                     SetDrawTarget(PlayLayerDraw);
                     Clear(olc::VERY_DARK_BLUE);
                     terrainDraw();
                     SetDrawTarget(nullptr);
                 }
+                
                 SetDrawTarget(UnitLayerDraw);
                 Clear(olc::BLANK);
+                
                 westForces->draw();
                 northForces->draw();    
                 eastForces->draw();
                 southForces->draw();
-                
                 
                 
                 //debugging things to remove later
@@ -216,25 +220,28 @@ public:
                     //~ buildVectorField(eastForces,westDistVec);
                 if(GetKey(olc::Z).bPressed)
                     walking = !walking;
-                    
+
+
                 testSoldier->checkCollide(testSoldiertwo);
                 testSoldiertwo->checkCollide(testSoldier);
                 
                 testSoldier->checkCollide(northForces);
                 testSoldiertwo->checkCollide(northForces);
                 
-                //~ testSoldier->checkCollide(southForces);
-                //~ testSoldiertwo->checkCollide(southForces);
+                testSoldier->checkCollide(southForces);
+                testSoldiertwo->checkCollide(southForces);
                 
-                //~ testSoldier->checkCollide(westForces);
-                //~ testSoldiertwo->checkCollide(westForces);
+                testSoldier->checkCollide(westForces);
+                testSoldiertwo->checkCollide(westForces);
                 
-                //~ testSoldier->checkCollide(eastForces);
-                //~ testSoldiertwo->checkCollide(eastForces);
+                testSoldier->checkCollide(eastForces);
+                testSoldiertwo->checkCollide(eastForces);
                 
                 
                 testSoldier->draw();
                 testSoldiertwo->draw();
+                SetDrawTarget(nullptr);
+                
                 if (walking){
                     DrawString(5,70,testSoldier->update(time),olc::WHITE,1.0f);
                     testSoldiertwo->update(time);
@@ -255,10 +262,11 @@ public:
                 }
                 
                 //end debug
-                SetDrawTarget(nullptr);
+                
                 break;
         }
     }
+    
     void terrainBuild(){
         for(int j = 0;j < arenaSize; j++){
             for (int i = 0; i < arenaSize; i++){
@@ -273,9 +281,16 @@ public:
     }
     
     void terrainDraw(){
+        
+        olc::vf2d tl = viewer.GetTopLeftTile();
+        olc::vf2d br = viewer.GetBottomRightTile();
         olc::Pixel wallColour = olc::WHITE;
-        for(int j = 0;j < arenaSize - 1;j++){
-            for (int i = 0; i< arenaSize - 1;i++){
+        olc::Pixel pathColour = olc::Pixel(51,45,26);
+        olc::Pixel hillColour = olc::GREEN;
+        
+        for(int j = max(0,int(tl.y));j < min(int(br.y),arenaSize-1); j++){
+        
+            for(int i = max(0,int(tl.x));i < min(int(br.x),arenaSize-1); i++){
                 // depth Top/Left/Right/Bottom
                 float dTL = arenaBoard[i  ][j  ];
                 float dTR = arenaBoard[i+1][j  ];
@@ -296,54 +311,86 @@ public:
                 }
                 switch(wallType){
                     case 15:// All Four Corners = Solid Land
-                        viewer.FillRect(i,j,1.0f,1.0f,olc::GREEN);
+                        viewer.FillRect(i,j,1.0f,1.0f,hillColour);
                         break;
                     case 14://Top Left + Top Right + Bottom Right = Inverted Bottom Left
+                        viewer.FillRect(i,j,1.0f,1.0f,hillColour);
+                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f},pathColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
                         break;
                     case 13://Top Left + Top Right + Bottom Left = Inverted Bottom Right
+                        viewer.FillRect(i,j,1.0f,1.0f,hillColour);
+                        viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},pathColour);
                         viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
                         break;
                     case 12://Top Left + Top Right = Top Half
+                        viewer.FillRect(i,j,1.0f,0.5f,hillColour);
+                        viewer.FillRect(i,j+0.5f,1.0f,0.5f,pathColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+1.0f,j+0.5f},wallColour);
                         break;
                     case 11://Top Left + Bottom Right + Bottom Left = Invert Top Right 
+                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                        viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},pathColour);
                         viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
                         break;
                     case 10://Top Left + Bottom Right = Special Case: Opposite Corners
+                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                        viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},pathColour);
+                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f},pathColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
                         viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
                         break;
-                    case 9://Top Left + Bottom Left
+                    case 9://Top Left + Bottom Left = left half
+                        viewer.FillRect(i,j,0.5f,1.0f,hillColour);
+                        viewer.FillRect(i+0.5f,j,0.5f,1.0f,pathColour);
                         viewer.DrawLine({i+0.5f,j+0.0f},{i+0.5f,j+1.0f},wallColour);
                         break;
                     case 8://Top Left
+                        viewer.FillRect(i,j,01.0f,1.0f,pathColour);
+                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},hillColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
                         break;
                     case 7://Top Right + Bottom Right + Bottom Left = Inverte Top Left
+                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},pathColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
                         break;
                     case 6://Top Right + Bottom Right = Right Side
+                        viewer.FillRect(i,j,0.5f,1.0f,pathColour);
+                        viewer.FillRect(i+0.5f,j,0.5f,1.0f,hillColour);
                         viewer.DrawLine({i+0.5f,j+0.0f},{i+0.5f,j+1.0f},wallColour);
                         break;
                     case 5://Top Right + Bottom Left = Special Case: Opposite Corners
+                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                        
+                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},pathColour);
+                        viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},pathColour );
+                        
                         viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
                         break;
                     case 4://Top Right
+                        viewer.FillRect(i,j,01.0f,1.0f,pathColour);
+                        viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},hillColour);
                         viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
                         break;
-                    case 3://Bottom Right + Bottom Left
+                    case 3://Bottom Right + Bottom Left = bottom half
+                        viewer.FillRect(i,j,1.0f,0.5f,pathColour);
+                        viewer.FillRect(i,j+0.5f,1.0f,0.5f,hillColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+1.0f,j+0.5f},wallColour);
                         break;
                     case 2://Bottom Right
+                        viewer.FillRect(i,j,1.0f,1.0f,pathColour);
+                        viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},hillColour );
                         viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
                         break;
                     case 1://Bottom Left
+                        viewer.FillRect(i,j,1.0f,1.0f,pathColour);
+                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f}, hillColour);
                         viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
                         break;
                     case 0://No Walls = Floor Tile
-                        viewer.FillRect(i,j,1.0f,1.0f,olc::Pixel(51,45,26));//33 2D 1A
+                        viewer.FillRect(i,j,1.0f,1.0f,pathColour);//33 2D 1A
                         break;
                 }
             }
@@ -395,9 +442,9 @@ public:
             
             // viewer.FillRect(thisNode.x + 0.25f, thisNode.y + 0.25f,0.5f,0.5f,olc::MAGENTA); //for testing
             
-            if(thisNode.x <= westLimit || thisNode.x >= eastLimit)
+            if(thisNode.x <= max(westLimit,1) || thisNode.x >= min(eastLimit,arenaSize-1))
                 continue;
-            if(thisNode.y <= northLimit || thisNode.y >= southLimit)
+            if(thisNode.y <= max(northLimit,1) || thisNode.y >= min(southLimit,arenaSize-1))
                 continue;
                 
             
