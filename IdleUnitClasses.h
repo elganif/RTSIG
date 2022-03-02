@@ -3,6 +3,7 @@
 #include "globals.h"
 
 using namespace std;
+
 class Unit{
     public:
         enum Shape {SQUARE,CIRCLE};
@@ -26,16 +27,18 @@ class Soldier : public Unit{
     public:
     
         Team target;
-        //float (* vectorTable);
         
-        Soldier(olc::vf2d newlocation,float newSize,olc::Pixel TeamColour,
+        
+        Soldier(olc::vf2d newlocation,float newSize,olc::Pixel newTeamColour,
             olc::TileTransformedView* newtransview,Team team)
         
         {
             location = newlocation;
+            location.x = min(max(location.x,0.0f),float(arenaSize));
+            location.y = min(max(location.y,0.0f),float(arenaSize));
             size = newSize;
             transview = newtransview;
-            this->TeamColour = TeamColour;
+            TeamColour = newTeamColour;
             target = team;
             shape = CIRCLE;
             
@@ -97,6 +100,9 @@ class Soldier : public Unit{
                 return "oops"+ to_string(location.x) +" " +to_string(location.y) +" " + to_string(n)+" " +to_string(s)+" " +to_string(w)+" " +to_string(e);
             direction = direction.norm()*t;
             location += direction;
+            location.x = min(max(location.x,0.0f),float(arenaSize));
+            location.y = min(max(location.y,0.0f),float(arenaSize));
+            
             return to_string(location.x) +" " +to_string(location.y) +" " + to_string(n)+" " +to_string(s)+" " +to_string(w)+" " +to_string(e);
         }
         
@@ -107,30 +113,35 @@ class Soldier : public Unit{
                 olc::vf2d topleft = other->location - (other->area * 0.5f);
                 olc::vf2d botright = other->location + (other->area * 0.5f);
                 
-                olc::vf2d nearest = {min(max(this->location.x,topleft.x),botright.x),
-                                     min(max(this->location.y,topleft.y),botright.y)};
+                olc::vf2d nearest = {min(max(location.x,topleft.x),botright.x),
+                                     min(max(location.y,topleft.y),botright.y)};
                 
                 olc::vf2d dist = nearest - this->location;
-                float colide = this->size - dist.mag();
+                float colide = size - dist.mag();
                 if (isnan(colide)) colide = 0;
                 
                 if (colide > 0)
-                    this->location -= dist.norm() * colide;
+                    location -= dist.norm() * colide;
                 
                 return {0,0};
             }
             if(other->shape == CIRCLE){
                 // Unit collision Checking
-                float colDist = other->size + this->size;
-                float xDist = abs(other->location.x - this->location.x);
-                float yDist = abs(other->location.y - this->location.y);
+                float colDist = other->size + size;
+                float xDist = abs(other->location.x - location.x);
+                float yDist = abs(other->location.y - location.y);
                 
                 if (colDist * colDist < xDist * xDist + yDist * yDist)
                     return {0,0};
-                olc::vf2d direction = this->location - other->location;
+                olc::vf2d direction = location - other->location;
                 float overlap = colDist - direction.mag();
-                this->location += direction.norm() * overlap * 0.5f;
+                location += direction.norm() * overlap * 0.5f;
+                
+            location.x = min(max(location.x,0.0f),float(arenaSize));
+            location.y = min(max(location.y,0.0f),float(arenaSize));
                 other->location -= direction.norm() * overlap * 0.5f;
+            other->location.x = min(max(other->location.x,0.0f),float(arenaSize));
+            other->location.y = min(max(other->location.y,0.0f),float(arenaSize));
                 
                 return direction.norm() * overlap;
                 
@@ -142,12 +153,15 @@ class Soldier : public Unit{
 
 class Building : public Unit{
     public:
-        Building(olc::vf2d newlocation,olc::vf2d newArea,olc::TileTransformedView* newtransview,olc::Pixel TeamColour){
+        Building(olc::vf2d newlocation,olc::vf2d newArea,olc::TileTransformedView* newtransview,olc::Pixel newTeamColour){
             location = newlocation;
+            location.x = min(max(location.x,0.0f),float(arenaSize));
+            location.y = min(max(location.y,0.0f),float(arenaSize));
+            
             area = newArea;
             size = max(area.x,area.y);
             transview = newtransview;
-            this->TeamColour = TeamColour;
+            TeamColour = newTeamColour;
             shape = SQUARE;
         }
         void draw() override{
@@ -172,12 +186,15 @@ class Capital : public Unit{
         
         vector<Unit*> buildings;
         
-        Capital(olc::vf2d newlocation,olc::vf2d newArea,olc::TileTransformedView* newtransview,olc::Pixel TeamColour){
+        Capital(olc::vf2d newlocation,olc::vf2d newArea,olc::TileTransformedView* newtransview,olc::Pixel newTeamColour){
             location = newlocation;
+            location.x = min(max(location.x,0.0f),float(arenaSize));
+            location.y = min(max(location.y,0.0f),float(arenaSize));
+            
             area = newArea;
             size = max(area.x,area.y);
             transview = newtransview;
-            this->TeamColour = TeamColour;
+            TeamColour = newTeamColour;
             shape = SQUARE;
         }
         

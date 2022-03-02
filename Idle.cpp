@@ -40,7 +40,9 @@ public:
     {
         // Called once at the start, so create things here
         time = 0;
-        viewer = olc::TileTransformedView({ScreenWidth(),ScreenHeight()},{arenaSize,arenaSize});
+        int windowSize = min(ScreenHeight()/arenaSize,ScreenWidth()/arenaSize);
+        viewer = olc::TileTransformedView({ScreenWidth(),ScreenHeight()},{windowSize,windowSize});
+        viewer.SetWorldOffset({-arenaSize*0.5f,0});
         UnitLayerDraw = CreateLayer();
         PlayLayerDraw = CreateLayer();
         EnableLayer(UnitLayerDraw,true);
@@ -129,12 +131,17 @@ public:
     void drawGame(){
         
         olc::vf2d mover = {1,0};
+        float windowSize = min(ScreenHeight()/arenaSize,ScreenWidth()/arenaSize);
         switch(playState){
+            
             case MAP:
-                checkPanZoom();
+                
+                viewer.SetWorldScale({windowSize,windowSize});
+                viewer.SetWorldOffset({-arenaSize*0.5f,0});
+                Clear(olc::BLACK);
                 for(int j = 0;j<5;j++){
                     for(int i = 0;i<5;i++){
-                        if(viewerButton("P",i*10,j*10,10,10,olc::RED,olc::YELLOW,olc::BLUE,olc::DARK_BLUE)){
+                        if(viewerButton("P",i*arenaSize*0.2f,j*arenaSize*0.2f,arenaSize*0.2f,arenaSize*0.2f,olc::RED,olc::YELLOW,olc::BLUE,olc::DARK_BLUE)){
                             mapNumber = {float(i),float(j)};
                             playState = LOADING;
                         }
@@ -142,6 +149,7 @@ public:
                 }
                 break;
             case LOADING:
+                
                 Clear(olc::BLACK);
                 DrawString(10,10,"LOADING",olc::RED,20);
                 // Build terrain Map
