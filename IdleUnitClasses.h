@@ -18,9 +18,6 @@ class Unit{
         virtual void draw(){};
         virtual string update(float t){return "";};
         virtual olc::vf2d checkCollide(Unit* other){return {0,0};};
-
-        
-    
 };
 
 class Soldier : public Unit{
@@ -213,8 +210,36 @@ class Capital : public Unit{
             buildings.push_back(b);
         }
         
-        string update(float t) override{ return"";
+        string update(float t) override{ 
             // spawn and manage units or buildings, call update() on units and buildings
+            int target = rand()%4 + 1;
+            Team targetT;
+            if (target = 1)
+                targetT = WEST;
+            if (target = 2)
+                targetT = NORTH;
+            if (target = 3)
+                targetT = EAST;
+            if (target = 4)
+                targetT = SOUTH;
+
+            if (soldiers.size() < 100){
+                Soldier* nextUnit = new Soldier(this->location,0.2f,TeamColour,transview,targetT);
+                soldiers.push_back(nextUnit);
+            }
+            
+            for (int i = 0; i < soldiers.size(); i++){
+                soldiers[i]->update(t);
+            }
+            
+            for (int i = 0; i < soldiers.size(); i++){
+                for (int j = i+1; j < soldiers.size() ;j++){
+                    soldiers[i]->checkCollide(soldiers[j]);
+                }
+            }
+            
+            
+            return"";
         }
         
         olc::vf2d checkCollide(Unit* other) override{

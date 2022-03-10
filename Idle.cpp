@@ -135,144 +135,158 @@ public:
         switch(playState){
             
             case MAP:
-                
-                viewer.SetWorldScale({windowSize,windowSize});
-                viewer.SetWorldOffset({-arenaSize*0.5f,0});
-                Clear(olc::BLACK);
-                for(int j = 0;j<5;j++){
-                    for(int i = 0;i<5;i++){
-                        if(viewerButton("P",i*arenaSize*0.2f,j*arenaSize*0.2f,arenaSize*0.2f,arenaSize*0.2f,olc::RED,olc::YELLOW,olc::BLUE,olc::DARK_BLUE)){
-                            mapNumber = {float(i),float(j)};
-                            playState = LOADING;
-                        }
-                    }   
-                }
+                map();
                 break;
             case LOADING:
-                
-                Clear(olc::BLACK);
-                DrawString(10,10,"LOADING",olc::RED,20);
-                // Build terrain Map
-                terrainBuild();
-                // Locate and Place Capital Bases
-                initializeBases();
-                
-                // Check Valid Pathing exists
-                while(!aStarExists(northForces->location,southForces->location,westForces->location.x,0,eastForces->location.x,arenaSize))
-                    threshold+=0.01f;
-                while(!aStarExists(westForces->location,eastForces->location,0,northForces->location.y,arenaSize,southForces->location.y))
-                    threshold+=0.01f;
-                
-                
-                // Generate inital Vector Fields
-                buildVectorField(westForces,westDistVec);
-                buildVectorField(northForces,northDistVec);
-                buildVectorField(eastForces,eastDistVec);
-                buildVectorField(southForces,southDistVec);
-                
-                testSoldier = new Soldier(localMinima(25,25,75,75) + mover,0.2f,olc::Pixel(250,0,250),&viewer,WEST);
-                testSoldiertwo = new Soldier(localMinima(25,25,75,75),0.2f,olc::Pixel(250,0,250),&viewer,WEST);
-                SetDrawTarget(PlayLayerDraw);
-                    Clear(olc::VERY_DARK_BLUE);
-                    terrainDraw();
-                    SetDrawTarget(nullptr);
-                playState = ARENA;
+                loading();
                 break;
             case ARENA:
-                //terrainBuild(); // For debuggin map math
-                checkPanZoom();
-                {//if(checkPanZoom()){
-                    SetDrawTarget(PlayLayerDraw);
-                    Clear(olc::VERY_DARK_BLUE);
-                    terrainDraw();
-                    SetDrawTarget(nullptr);
-                }
-                
-                SetDrawTarget(UnitLayerDraw);
-                Clear(olc::BLANK);
-                
-                westForces->draw();
-                northForces->draw();    
-                eastForces->draw();
-                southForces->draw();
-                
-                
-                //debugging things to remove later
-                DrawString(5,5,to_string(threshold),olc::WHITE,1.0f);
-                if(GetKey(olc::I).bHeld)
-                    threshold -= 0.1f*time;
-                if(GetKey(olc::K).bHeld)
-                    threshold += 0.1f*time;
-                if(GetKey(olc::O).bHeld)
-                    scale -= 0.001f*time;
-                if(GetKey(olc::L).bHeld)
-                    scale += 0.001f*time;
-                
-                if(GetKey(olc::UP).bHeld)
-                    testSoldier->location.y -= time*speed;
-                if(GetKey(olc::DOWN).bHeld)
-                    testSoldier->location.y += time*speed;
-                if(GetKey(olc::LEFT).bHeld)
-                    testSoldier->location.x -= time*speed;
-                if(GetKey(olc::RIGHT).bHeld)
-                    testSoldier->location.x += time*speed;
-                    
-                    
-                //~ if(GetKey(olc::UP).bHeld)
-                    //~ buildVectorField(northForces,westDistVec);
-                //~ if(GetKey(olc::DOWN).bHeld)
-                    //~ buildVectorField(southForces,westDistVec);
-                //~ if(GetKey(olc::LEFT).bHeld)
-                    //~ buildVectorField(westForces,westDistVec);
-                //~ if(GetKey(olc::RIGHT).bHeld)
-                    //~ buildVectorField(eastForces,westDistVec);
-                if(GetKey(olc::Z).bPressed)
-                    walking = !walking;
-
-
-                testSoldier->checkCollide(testSoldiertwo);
-                testSoldiertwo->checkCollide(testSoldier);
-                
-                testSoldier->checkCollide(northForces);
-                testSoldiertwo->checkCollide(northForces);
-                
-                testSoldier->checkCollide(southForces);
-                testSoldiertwo->checkCollide(southForces);
-                
-                testSoldier->checkCollide(westForces);
-                testSoldiertwo->checkCollide(westForces);
-                
-                testSoldier->checkCollide(eastForces);
-                testSoldiertwo->checkCollide(eastForces);
-                
-                
-                testSoldier->draw();
-                testSoldiertwo->draw();
-                SetDrawTarget(nullptr);
-                
-                if (walking){
-                    DrawString(5,70,testSoldier->update(time),olc::WHITE,1.0f);
-                    testSoldiertwo->update(time);
-                } else {
-                    DrawString(5,70, to_string(testSoldier->location.x) +" " +to_string(testSoldier->location.y),olc::WHITE,1.0f);
-                    DrawString(5,80, to_string(northForces->location.x) +" " +to_string(northForces->location.y),olc::WHITE,1.0f);
-                    
-                    
-                }
-                    
-                DrawString(5,15,to_string(scale),olc::WHITE,1.0f);
-                olc::vf2d mouseXY = viewer.ScreenToWorld(GetMousePos());
-                if (mouseXY.x > 0 && mouseXY.y > 0 && int(round(mouseXY.x)) < arenaSize && int(round(mouseXY.y)) < arenaSize){
-                    DrawString(5,25,to_string(westDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-                    DrawString(5,35,to_string(northDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-                    DrawString(5,45,to_string(eastDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-                    DrawString(5,55,to_string(southDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-                }
-                
-                //end debug
-                
+                arena();
                 break;
         }
+    }
+    
+    void map(){
+        viewer.SetWorldScale({windowSize,windowSize});
+        viewer.SetWorldOffset({-arenaSize*0.5f,0});
+        Clear(olc::BLACK);
+        for(int j = 0;j<5;j++){
+            for(int i = 0;i<5;i++){
+                if(viewerButton("P",i*arenaSize*0.2f,j*arenaSize*0.2f,arenaSize*0.2f,arenaSize*0.2f,olc::RED,olc::YELLOW,olc::BLUE,olc::DARK_BLUE)){
+                    mapNumber = {float(i),float(j)};
+                    playState = LOADING;
+                }
+            }   
+        }
+    }
+    
+    void loading(){
+
+        Clear(olc::BLACK);
+        DrawString(10,10,"LOADING",olc::RED,20);
+        // Build terrain Map
+        terrainBuild();
+        // Locate and Place Capital Bases
+        initializeBases();
+        
+        // Check Valid Pathing exists
+        while(!aStarExists(northForces->location,southForces->location,westForces->location.x,0,eastForces->location.x,arenaSize))
+            threshold+=0.01f;
+        while(!aStarExists(westForces->location,eastForces->location,0,northForces->location.y,arenaSize,southForces->location.y))
+            threshold+=0.01f;
+        
+        
+        // Generate inital Vector Fields
+        buildVectorField(westForces,westDistVec);
+        buildVectorField(northForces,northDistVec);
+        buildVectorField(eastForces,eastDistVec);
+        buildVectorField(southForces,southDistVec);
+        
+        testSoldier = new Soldier(localMinima(25,25,75,75) + mover,0.2f,olc::Pixel(250,0,250),&viewer,WEST);
+        testSoldiertwo = new Soldier(localMinima(25,25,75,75),0.2f,olc::Pixel(250,0,250),&viewer,WEST);
+        SetDrawTarget(PlayLayerDraw);
+            Clear(olc::VERY_DARK_BLUE);
+            terrainDraw();
+            SetDrawTarget(nullptr);
+        playState = ARENA;
+    }
+    
+    void arena(){
+        //terrainBuild(); // For debuggin map math
+        checkPanZoom();
+        {//if(checkPanZoom()){
+            SetDrawTarget(PlayLayerDraw);
+            Clear(olc::VERY_DARK_BLUE);
+            terrainDraw();
+            SetDrawTarget(nullptr);
+        }
+        
+        SetDrawTarget(UnitLayerDraw);
+        Clear(olc::BLANK);
+        
+        westForces->draw();
+        northForces->draw();    
+        eastForces->draw();
+        southForces->draw();
+        
+        westForces->update(time);
+        northForces->update(time);
+        eastForces->update(time);
+        southForces->update(time);
+        
+        //debugging things to remove later
+        DrawString(5,5,to_string(threshold),olc::WHITE,1.0f);
+        if(GetKey(olc::I).bHeld)
+            threshold -= 0.1f*time;
+        if(GetKey(olc::K).bHeld)
+            threshold += 0.1f*time;
+        if(GetKey(olc::O).bHeld)
+            scale -= 0.001f*time;
+        if(GetKey(olc::L).bHeld)
+            scale += 0.001f*time;
+        
+        if(GetKey(olc::UP).bHeld)
+            testSoldier->location.y -= time*speed;
+        if(GetKey(olc::DOWN).bHeld)
+            testSoldier->location.y += time*speed;
+        if(GetKey(olc::LEFT).bHeld)
+            testSoldier->location.x -= time*speed;
+        if(GetKey(olc::RIGHT).bHeld)
+            testSoldier->location.x += time*speed;
+            
+            
+        //~ if(GetKey(olc::UP).bHeld)
+            //~ buildVectorField(northForces,westDistVec);
+        //~ if(GetKey(olc::DOWN).bHeld)
+            //~ buildVectorField(southForces,westDistVec);
+        //~ if(GetKey(olc::LEFT).bHeld)
+            //~ buildVectorField(westForces,westDistVec);
+        //~ if(GetKey(olc::RIGHT).bHeld)
+            //~ buildVectorField(eastForces,westDistVec);
+        if(GetKey(olc::Z).bPressed)
+            walking = !walking;
+
+
+        testSoldier->checkCollide(testSoldiertwo);
+        testSoldiertwo->checkCollide(testSoldier);
+        
+        testSoldier->checkCollide(northForces);
+        testSoldiertwo->checkCollide(northForces);
+        
+        testSoldier->checkCollide(southForces);
+        testSoldiertwo->checkCollide(southForces);
+        
+        testSoldier->checkCollide(westForces);
+        testSoldiertwo->checkCollide(westForces);
+        
+        testSoldier->checkCollide(eastForces);
+        testSoldiertwo->checkCollide(eastForces);
+        
+        
+        testSoldier->draw();
+        testSoldiertwo->draw();
+        SetDrawTarget(nullptr);
+        
+        if (walking){
+            DrawString(5,70,testSoldier->update(time),olc::WHITE,1.0f);
+            testSoldiertwo->update(time);
+        } else {
+            DrawString(5,70, to_string(testSoldier->location.x) +" " +to_string(testSoldier->location.y),olc::WHITE,1.0f);
+            DrawString(5,80, to_string(northForces->location.x) +" " +to_string(northForces->location.y),olc::WHITE,1.0f);
+            
+            
+        }
+            
+        DrawString(5,15,to_string(scale),olc::WHITE,1.0f);
+        olc::vf2d mouseXY = viewer.ScreenToWorld(GetMousePos());
+        if (mouseXY.x > 0 && mouseXY.y > 0 && int(round(mouseXY.x)) < arenaSize && int(round(mouseXY.y)) < arenaSize){
+            DrawString(5,25,to_string(westDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+            DrawString(5,35,to_string(northDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+            DrawString(5,45,to_string(eastDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+            DrawString(5,55,to_string(southDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+        }
+        
+        //end debug
     }
     
     void terrainBuild(){
@@ -616,15 +630,12 @@ public:
     
     int Button(string text, int x,int y, int w, int h, olc::Pixel textC, olc::Pixel textCMouse, olc::Pixel bgColour, olc::Pixel bgColourMouse)
     {
-        if (text.length() == 0) //if String empty then Crash: error 100 (Intentional : ToDo Fix Later with throws)
-            exit(100);
+        bool name = false;
+        if (text.length() > 0) //if String empty then skip
+            name = true;
         
         int click = 0;
-        int tScale = floor(min(w / (text.length() * 8.0f),h/8.0f));
-        float charSize = 8*tScale;
-        float dX = (w - charSize * text.length()) * 0.5f + x;
-        float dY = (h - charSize) * 0.5f + y + (charSize * 0.0625f);
-        
+  
         float mX = GetMouseX(); float mY = GetMouseY();
         if (not(mX <= x || mX >= x+w || mY <= y || mY >= y+h)){
             bgColour = bgColourMouse;
@@ -638,8 +649,14 @@ public:
         }
         
         FillRect(x,y,w,h,bgColour);
-        DrawString(dX,dY,text,textC,tScale);
+        if (name){
         
+            int tScale = floor(min(w / (text.length() * 8.0f),h/8.0f));
+            float charSize = 8*tScale;
+            float dX = (w - charSize * text.length()) * 0.5f + x;
+            float dY = (h - charSize) * 0.5f + y + (charSize * 0.0625f);
+            DrawString(dX,dY,text,textC,tScale);
+        }
         return click;
     }
     int viewerButton(string text, int x,int y, int w, int h, olc::Pixel textC, olc::Pixel textCMouse, olc::Pixel bgColour, olc::Pixel bgColourMouse)
@@ -678,7 +695,7 @@ public:
 int main()
 {
     Idle game;
-    if (game.Construct(1920, 1024, 1, 1))
+    if (game.Construct(1920, 1024, 1, 1, false, false))
         game.Start();
 
     return 0;
