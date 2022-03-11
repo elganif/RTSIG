@@ -130,8 +130,8 @@ public:
     
     void drawGame(){
         
-        olc::vf2d mover = {1,0};
-        float windowSize = min(ScreenHeight()/arenaSize,ScreenWidth()/arenaSize);
+        
+        
         switch(playState){
             
             case MAP:
@@ -147,6 +147,7 @@ public:
     }
     
     void map(){
+        float windowSize = min(ScreenHeight()/arenaSize,ScreenWidth()/arenaSize);
         viewer.SetWorldScale({windowSize,windowSize});
         viewer.SetWorldOffset({-arenaSize*0.5f,0});
         Clear(olc::BLACK);
@@ -161,7 +162,7 @@ public:
     }
     
     void loading(){
-
+        olc::vf2d mover = {1,0};
         Clear(olc::BLACK);
         DrawString(10,10,"LOADING",olc::RED,20);
         // Build terrain Map
@@ -599,6 +600,9 @@ public:
     
     bool checkPanZoom(){
         bool updated = false;
+        olc::vf2d curZoom = viewer.GetWorldScale();
+        olc::vf2d maxZoom = {10.0f,10.0f};olc::vf2d minZoom = {80.0f,80.0f};
+        
         if (GetMouse(2).bPressed){ 
             viewer.StartPan(GetMousePos());
             updated = true;
@@ -611,14 +615,33 @@ public:
             viewer.EndPan(GetMousePos());
             updated = true;
         }
-        if (GetMouseWheel() > 0){
+        if (GetMouseWheel() > 0 && curZoom < minZoom){
             viewer.ZoomAtScreenPos(2.0f, GetMousePos());
             updated = true;
         }
-        if (GetMouseWheel() < 0){
+        if (GetMouseWheel() < 0 && curZoom > maxZoom){
             viewer.ZoomAtScreenPos(0.5f, GetMousePos());
             updated = true;
         }
+        
+        if(curZoom < maxZoom)
+            viewer.SetWorldScale(maxZoom);
+        if(curZoom > minZoom)
+            viewer.SetWorldScale(minZoom);
+        olc::vf2d movement = {0,0};
+        olc::vf2d screenCenter = (viewer.GetWorldBR() + viewer.GetWorldTL()) *0.5f;
+        if (screenCenter.x < 0.0f)
+            movement.x -= screenCenter.x;
+        if (screenCenter.y < 0.0f)
+            movement.y -= screenCenter.y;
+        if (screenCenter.x > arenaSize)
+            movement.x -= (screenCenter.x - arenaSize);
+        if (screenCenter.y > arenaSize)
+            movement.y -= (screenCenter.y - arenaSize);
+            
+        viewer.MoveWorldOffset(movement);
+        DrawString(100,90,viewer.GetWorldScale().str());
+        DrawString(100,100,screenCenter.str());
         return updated;
     }
     
@@ -695,7 +718,7 @@ public:
 int main()
 {
     Idle game;
-    if (game.Construct(1920, 1024, 1, 1, false, false))
+    if (game.Construct(1920, 1024, 1, 1, false, true))
         game.Start();
 
     return 0;

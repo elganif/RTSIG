@@ -214,13 +214,13 @@ class Capital : public Unit{
             // spawn and manage units or buildings, call update() on units and buildings
             int target = rand()%4 + 1;
             Team targetT;
-            if (target = 1)
+            if (target == 1)
                 targetT = WEST;
-            if (target = 2)
+            if (target == 2)
                 targetT = NORTH;
-            if (target = 3)
+            if (target == 3)
                 targetT = EAST;
-            if (target = 4)
+            if (target == 4)
                 targetT = SOUTH;
 
             if (soldiers.size() < 100){
