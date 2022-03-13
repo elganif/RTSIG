@@ -4,6 +4,20 @@
 
 using namespace std;
 
+struct StatBlock
+{
+    float maxHP = 100;
+    float curHP = 100;
+    
+    float attRange = 1;
+    float sightRange = 5;
+    float damage = 20.0f;
+    
+    float attackSpeed = 2.0f;
+    float lastAttack = 2.0f;
+    
+};
+
 class Unit{
     public:
         enum Shape {SQUARE,CIRCLE};
@@ -14,10 +28,17 @@ class Unit{
         float size;
         Shape shape;
         vector<Unit*> soldiers;
+        Team team;
+        bool alive = true;
         
+        StatBlock stats;
+        
+                
         virtual void draw(){};
         virtual string update(float t){return "";};
+        virtual void collectUnits(vector<Unit*> &allStructure,vector<Unit*> &allPeronal){};
         virtual olc::vf2d checkCollide(Unit* other){return {0,0};};
+        virtual float checkAttack(Unit* other){return 0.0f;};
 };
 
 class Soldier : public Unit{
@@ -26,8 +47,8 @@ class Soldier : public Unit{
         Team target;
         
         
-        Soldier(olc::vf2d newlocation,float newSize,olc::Pixel newTeamColour,
-            olc::TileTransformedView* newtransview,Team team)
+        Soldier(olc::vf2d newlocation,float newSize,Team myTeam,olc::Pixel newTeamColour,
+            olc::TileTransformedView* newtransview,Team goal)
         
         {
             location = newlocation;
@@ -36,7 +57,8 @@ class Soldier : public Unit{
             size = newSize;
             transview = newtransview;
             TeamColour = newTeamColour;
-            target = team;
+            target = goal;
+            team = myTeam;
             shape = CIRCLE;
             
         }
@@ -44,9 +66,10 @@ class Soldier : public Unit{
         void draw() override{
             transview->FillCircle(location,size,TeamColour);
         }
+        
         string update(float t) override{
             // move & attack according to AI
-            //float (* vectorTable)[arenaSize][arenaSize] = &northDistVec;
+            
             
             int X = min(max(int(round(location.x)),1),arenaSize-1);
             int Y = min(max(int(round(location.y)),1),arenaSize-1);
@@ -93,14 +116,14 @@ class Soldier : public Unit{
             direction -= {0,min(max(here - w ,-1.0f),1.0f)};
             direction += {0,min(max(here - e ,-1.0f),1.0f)};
             
-            if(direction.x == 0 && direction.y == 0)
-                return "oops"+ to_string(location.x) +" " +to_string(location.y) +" " + to_string(n)+" " +to_string(s)+" " +to_string(w)+" " +to_string(e);
+            if(direction.x == 0 && direction.y == 0) // Stuck on flat vector need backup plan?
+                return "stuck";
             direction = direction.norm()*t;
             location += direction;
             location.x = min(max(location.x,0.0f),float(arenaSize));
             location.y = min(max(location.y,0.0f),float(arenaSize));
             
-            return to_string(location.x) +" " +to_string(location.y) +" " + to_string(n)+" " +to_string(s)+" " +to_string(w)+" " +to_string(e);
+            return "";
         }
         
         olc::vf2d checkCollide(Unit* other) override{
@@ -115,10 +138,14 @@ class Soldier : public Unit{
                 
                 olc::vf2d dist = nearest - this->location;
                 float colide = size - dist.mag();
-                if (isnan(colide)) colide = 0;
-                
+                if (isnan(colide)){// colide = 0;
+                    colide = 0;
+                }
+                olc::vf2d normal = dist.norm();
+                if (isnan(normal.x) || isnan(normal.y))
+                    normal={0,0};
                 if (colide > 0)
-                    location -= dist.norm() * colide;
+                    location -= normal * colide;
                 
                 return {0,0};
             }
@@ -150,7 +177,8 @@ class Soldier : public Unit{
 
 class Building : public Unit{
     public:
-        Building(olc::vf2d newlocation,olc::vf2d newArea,olc::TileTransformedView* newtransview,olc::Pixel newTeamColour){
+        Building(olc::vf2d newlocation,olc::vf2d newArea,Team myTeam,
+                 olc::TileTransformedView* newtransview,olc::Pixel newTeamColour){
             location = newlocation;
             location.x = min(max(location.x,0.0f),float(arenaSize));
             location.y = min(max(location.y,0.0f),float(arenaSize));
@@ -159,6 +187,7 @@ class Building : public Unit{
             size = max(area.x,area.y);
             transview = newtransview;
             TeamColour = newTeamColour;
+            team = myTeam;
             shape = SQUARE;
         }
         void draw() override{
@@ -173,9 +202,16 @@ class Building : public Unit{
             return "";
         }
         
-        olc::vf2d checkCollide(Unit* other) override{
-            return {0,0};
-        } 
+        void collectUnits(vector<Unit*> &allStructure,vector<Unit*> &allPeronal) override{
+            allStructure.push_back(this);
+            for(int i = 0; i < soldiers.size(); i++){
+                allPeronal.push_back(soldiers[i]);
+            }
+            
+        };
+        //~ olc::vf2d checkCollide(Unit* other) override{
+            //~ return {0,0};
+        //~ } 
 };
 
 class Capital : public Unit{
@@ -183,7 +219,8 @@ class Capital : public Unit{
         
         vector<Unit*> buildings;
         
-        Capital(olc::vf2d newlocation,olc::vf2d newArea,olc::TileTransformedView* newtransview,olc::Pixel newTeamColour){
+        Capital(olc::vf2d newlocation,olc::vf2d newArea,Team myTeam,
+                olc::TileTransformedView* newtransview,olc::Pixel newTeamColour){
             location = newlocation;
             location.x = min(max(location.x,0.0f),float(arenaSize));
             location.y = min(max(location.y,0.0f),float(arenaSize));
@@ -192,6 +229,7 @@ class Capital : public Unit{
             size = max(area.x,area.y);
             transview = newtransview;
             TeamColour = newTeamColour;
+            team = myTeam;
             shape = SQUARE;
         }
         
@@ -206,7 +244,7 @@ class Capital : public Unit{
         }
         
         void ConstructBuilding(olc::vf2d loc){
-            Building* b = new Building(loc,{1,1},transview,TeamColour);
+            Building* b = new Building(loc,{1,1},team,transview,TeamColour);
             buildings.push_back(b);
         }
         
@@ -223,26 +261,30 @@ class Capital : public Unit{
             if (target == 4)
                 targetT = SOUTH;
 
+            // Spawn mechanics
             if (soldiers.size() < 100){
-                Soldier* nextUnit = new Soldier(this->location,0.2f,TeamColour,transview,targetT);
+                Soldier* nextUnit = new Soldier(this->location,0.2f,team,TeamColour,transview,targetT);
                 soldiers.push_back(nextUnit);
             }
-            
+            // update all units
             for (int i = 0; i < soldiers.size(); i++){
                 soldiers[i]->update(t);
             }
-            
-            for (int i = 0; i < soldiers.size(); i++){
-                for (int j = i+1; j < soldiers.size() ;j++){
-                    soldiers[i]->checkCollide(soldiers[j]);
-                }
-            }
-            
-            
             return"";
         }
         
-        olc::vf2d checkCollide(Unit* other) override{
-            return {0,0};
-        } 
+        void collectUnits(vector<Unit*> &allStructure,vector<Unit*> &allPeronal) override{
+            allStructure.push_back(this);
+            for(int i = 0; i < soldiers.size(); i++){
+                allPeronal.push_back(soldiers[i]);
+            }
+            for(int i = 0; i < buildings.size(); i++){
+                buildings[i]->collectUnits(allStructure,allPeronal);
+            }
+            
+        };
+        
+        //~ olc::vf2d checkCollide(Unit* other) override{
+            //~ return {0,0};
+        //~ } 
 };

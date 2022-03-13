@@ -118,8 +118,8 @@ public:
     Capital* southForces;
     
     
-    Soldier* testSoldier;
-    Soldier* testSoldiertwo;
+    //~ Soldier* testSoldier;
+    //~ Soldier* testSoldiertwo;
     float speed = 2.0f;
     bool walking = false;
     
@@ -183,8 +183,8 @@ public:
         buildVectorField(eastForces,eastDistVec);
         buildVectorField(southForces,southDistVec);
         
-        testSoldier = new Soldier(localMinima(25,25,75,75) + mover,0.2f,olc::Pixel(250,0,250),&viewer,WEST);
-        testSoldiertwo = new Soldier(localMinima(25,25,75,75),0.2f,olc::Pixel(250,0,250),&viewer,WEST);
+        //testSoldier = new Soldier(localMinima(25,25,75,75) + mover,0.2f,olc::Pixel(250,0,250),&viewer,WEST);
+        //testSoldiertwo = new Soldier(localMinima(25,25,75,75),0.2f,olc::Pixel(250,0,250),&viewer,WEST);
         SetDrawTarget(PlayLayerDraw);
             Clear(olc::VERY_DARK_BLUE);
             terrainDraw();
@@ -215,6 +215,34 @@ public:
         eastForces->update(time);
         southForces->update(time);
         
+        vector<Unit*> allPersonal;
+        vector<Unit*> allStructures;
+        
+        westForces->collectUnits(allStructures,allPersonal);
+        northForces->collectUnits(allStructures,allPersonal);
+        eastForces->collectUnits(allStructures,allPersonal);
+        southForces->collectUnits(allStructures,allPersonal);
+        
+        
+        for(int i = 0; i< allPersonal.size(); i++){
+            for(int j = i+1; j < allPersonal.size(); j++){
+                
+                allPersonal[i]->checkCollide(allPersonal[j]);
+                if (allPersonal[i]->team != allPersonal[j]->team){
+                    allPersonal[i]->checkAttack(allPersonal[j]);
+                }
+                
+            }
+            for(int k = 0; k < allStructures.size(); k++){
+                allPersonal[i]->checkCollide(allStructures[k]);
+                if (allPersonal[i]->team != allStructures[k]->team){
+                    allPersonal[i]->checkAttack(allStructures[k]);
+                }
+            }
+        }
+        
+        
+        
         //debugging things to remove later
         DrawString(5,5,to_string(threshold),olc::WHITE,1.0f);
         if(GetKey(olc::I).bHeld)
@@ -226,14 +254,14 @@ public:
         if(GetKey(olc::L).bHeld)
             scale += 0.001f*time;
         
-        if(GetKey(olc::UP).bHeld)
-            testSoldier->location.y -= time*speed;
-        if(GetKey(olc::DOWN).bHeld)
-            testSoldier->location.y += time*speed;
-        if(GetKey(olc::LEFT).bHeld)
-            testSoldier->location.x -= time*speed;
-        if(GetKey(olc::RIGHT).bHeld)
-            testSoldier->location.x += time*speed;
+        //~ if(GetKey(olc::UP).bHeld)
+            //~ testSoldier->location.y -= time*speed;
+        //~ if(GetKey(olc::DOWN).bHeld)
+            //~ testSoldier->location.y += time*speed;
+        //~ if(GetKey(olc::LEFT).bHeld)
+            //~ testSoldier->location.x -= time*speed;
+        //~ if(GetKey(olc::RIGHT).bHeld)
+            //~ testSoldier->location.x += time*speed;
             
             
         //~ if(GetKey(olc::UP).bHeld)
@@ -244,39 +272,39 @@ public:
             //~ buildVectorField(westForces,westDistVec);
         //~ if(GetKey(olc::RIGHT).bHeld)
             //~ buildVectorField(eastForces,westDistVec);
-        if(GetKey(olc::Z).bPressed)
-            walking = !walking;
+        //~ if(GetKey(olc::Z).bPressed)
+            //~ walking = !walking;
 
 
-        testSoldier->checkCollide(testSoldiertwo);
-        testSoldiertwo->checkCollide(testSoldier);
+        //~ testSoldier->checkCollide(testSoldiertwo);
+        //~ testSoldiertwo->checkCollide(testSoldier);
         
-        testSoldier->checkCollide(northForces);
-        testSoldiertwo->checkCollide(northForces);
+        //~ testSoldier->checkCollide(northForces);
+        //~ testSoldiertwo->checkCollide(northForces);
         
-        testSoldier->checkCollide(southForces);
-        testSoldiertwo->checkCollide(southForces);
+        //~ testSoldier->checkCollide(southForces);
+        //~ testSoldiertwo->checkCollide(southForces);
         
-        testSoldier->checkCollide(westForces);
-        testSoldiertwo->checkCollide(westForces);
+        //~ testSoldier->checkCollide(westForces);
+        //~ testSoldiertwo->checkCollide(westForces);
         
-        testSoldier->checkCollide(eastForces);
-        testSoldiertwo->checkCollide(eastForces);
+        //~ testSoldier->checkCollide(eastForces);
+        //~ testSoldiertwo->checkCollide(eastForces);
         
         
-        testSoldier->draw();
-        testSoldiertwo->draw();
+        //~ testSoldier->draw();
+        //~ testSoldiertwo->draw();
         SetDrawTarget(nullptr);
         
-        if (walking){
-            DrawString(5,70,testSoldier->update(time),olc::WHITE,1.0f);
-            testSoldiertwo->update(time);
-        } else {
-            DrawString(5,70, to_string(testSoldier->location.x) +" " +to_string(testSoldier->location.y),olc::WHITE,1.0f);
-            DrawString(5,80, to_string(northForces->location.x) +" " +to_string(northForces->location.y),olc::WHITE,1.0f);
+        //~ if (walking){
+            //~ DrawString(5,70,testSoldier->update(time),olc::WHITE,1.0f);
+            //~ testSoldiertwo->update(time);
+        //~ } else {
+            //~ DrawString(5,70, to_string(testSoldier->location.x) +" " +to_string(testSoldier->location.y),olc::WHITE,1.0f);
+            //~ DrawString(5,80, to_string(northForces->location.x) +" " +to_string(northForces->location.y),olc::WHITE,1.0f);
             
             
-        }
+        //~ }
             
         DrawString(5,15,to_string(scale),olc::WHITE,1.0f);
         olc::vf2d mouseXY = viewer.ScreenToWorld(GetMousePos());
@@ -511,13 +539,13 @@ public:
     void initializeBases(){
         olc::vf2d mainBaseSize = {1.5f,1.5f};
         olc::vf2d northBaseLoc = localMinima(floor(arenaSize * 0.3f),floor(arenaSize * 0.05f),ceil(arenaSize * 0.7f),floor(arenaSize * 0.2f));
-        northForces = new Capital(northBaseLoc,mainBaseSize,&viewer,olc::RED);
+        northForces = new Capital(northBaseLoc,mainBaseSize,NORTH,&viewer,olc::RED);
         olc::vf2d southBaseLoc = localMinima(floor(arenaSize * 0.3f),floor(arenaSize * 0.8f),ceil(arenaSize * 0.7f),floor(arenaSize * 0.95f));
-        southForces = new Capital(southBaseLoc,mainBaseSize,&viewer,olc::DARK_MAGENTA);          
+        southForces = new Capital(southBaseLoc,mainBaseSize,SOUTH,&viewer,olc::DARK_MAGENTA);          
         olc::vf2d westBaseLoc = localMinima(floor(arenaSize * 0.05f),floor(arenaSize * 0.3f),ceil(arenaSize * 0.2f),floor(arenaSize * 0.7f));
-        westForces = new Capital(westBaseLoc,mainBaseSize,&viewer,olc::BLUE);
+        westForces = new Capital(westBaseLoc,mainBaseSize,WEST,&viewer,olc::BLUE);
         olc::vf2d eastBaseLoc = localMinima(floor(arenaSize * 0.8f),floor(arenaSize * 0.3f),ceil(arenaSize * 0.95f),floor(arenaSize * 0.7f));
-        eastForces = new Capital(eastBaseLoc,mainBaseSize,&viewer,olc::YELLOW);
+        eastForces = new Capital(eastBaseLoc,mainBaseSize,EAST,&viewer,olc::YELLOW);
     }
     
     //class NodeBinTree{  //More efficient container for vector fields later
@@ -640,8 +668,6 @@ public:
             movement.y -= (screenCenter.y - arenaSize);
             
         viewer.MoveWorldOffset(movement);
-        DrawString(100,90,viewer.GetWorldScale().str());
-        DrawString(100,100,screenCenter.str());
         return updated;
     }
     
