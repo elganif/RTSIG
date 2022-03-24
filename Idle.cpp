@@ -194,36 +194,37 @@ public:
     
     void arena(){
         //terrainBuild(); // For debuggin map math
-        checkPanZoom();
-        {//if(checkPanZoom()){
+        //checkPanZoom();
+        if(checkPanZoom()){
             SetDrawTarget(PlayLayerDraw);
             Clear(olc::VERY_DARK_BLUE);
             terrainDraw();
             SetDrawTarget(nullptr);
+            DrawString(0,0, "Panning",olc::WHITE,1.0f);
         }
         
         SetDrawTarget(UnitLayerDraw);
         Clear(olc::BLANK);
         
-        westForces->draw();
-        northForces->draw();    
-        eastForces->draw();
-        southForces->draw();
-        
+     auto tpStart = std::chrono::system_clock::now();  
         westForces->update(time);
         northForces->update(time);
         eastForces->update(time);
         southForces->update(time);
-        
+
+
+
+
         vector<Unit*> allPersonal;
         vector<Unit*> allStructures;
         
+
         westForces->collectUnits(allStructures,allPersonal);
         northForces->collectUnits(allStructures,allPersonal);
         eastForces->collectUnits(allStructures,allPersonal);
         southForces->collectUnits(allStructures,allPersonal);
         
-        
+
         for(int i = 0; i< allPersonal.size(); i++){
             for(int j = i+1; j < allPersonal.size(); j++){
                 
@@ -240,9 +241,14 @@ public:
                 }
             }
         }
-        
-        
-        
+
+        westForces->draw();
+        northForces->draw();    
+        eastForces->draw();
+        southForces->draw();
+       std::chrono::duration<float> dur = std::chrono::system_clock::now() - tpStart;
+DrawString(5,80, "Units Updates:" + to_string(dur.count()),olc::WHITE,1.0f);
+            
         //debugging things to remove later
         DrawString(5,5,to_string(threshold),olc::WHITE,1.0f);
         if(GetKey(olc::I).bHeld)
@@ -306,14 +312,14 @@ public:
             
         //~ }
             
-        DrawString(5,15,to_string(scale),olc::WHITE,1.0f);
-        olc::vf2d mouseXY = viewer.ScreenToWorld(GetMousePos());
-        if (mouseXY.x > 0 && mouseXY.y > 0 && int(round(mouseXY.x)) < arenaSize && int(round(mouseXY.y)) < arenaSize){
-            DrawString(5,25,to_string(westDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-            DrawString(5,35,to_string(northDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-            DrawString(5,45,to_string(eastDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-            DrawString(5,55,to_string(southDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
-        }
+        //~ DrawString(5,15,to_string(scale),olc::WHITE,1.0f);
+        //~ olc::vf2d mouseXY = viewer.ScreenToWorld(GetMousePos());
+        //~ if (mouseXY.x > 0 && mouseXY.y > 0 && int(round(mouseXY.x)) < arenaSize && int(round(mouseXY.y)) < arenaSize){
+            //~ DrawString(5,25,to_string(westDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+            //~ DrawString(5,35,to_string(northDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+            //~ DrawString(5,45,to_string(eastDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+            //~ DrawString(5,55,to_string(southDistVec[int(round(mouseXY.x))][int(round(mouseXY.y))]),olc::WHITE,1.0f);
+        //~ }
         
         //end debug
     }
@@ -331,127 +337,134 @@ public:
         
     }
     
-    void terrainDraw(){
-        
-        olc::vf2d tl = viewer.GetTopLeftTile();
-        olc::vf2d br = viewer.GetBottomRightTile();
+    void cellFill(int i, int j,float dTL, float dTR, float dBR, float dBL){
         olc::Pixel wallColour = olc::WHITE;
         olc::Pixel pathColour = olc::Pixel(51,45,26);
         olc::Pixel hillColour = olc::GREEN;
-        
+        int wallType = 0;
+        if (dTL > threshold){
+            wallType += 8;
+        }
+        if (dTR > threshold){
+            wallType += 4;
+        }
+        if (dBR > threshold){
+            wallType += 2;
+        }
+        if (dBL > threshold){
+            wallType += 1;
+        }
+        switch(wallType){
+            case 15:// All Four Corners = Solid Land
+                viewer.FillRect(i,j,1.0f,1.0f,hillColour);
+                break;
+            case 14://Top Left + Top Right + Bottom Right = Inverted Bottom Left
+                viewer.FillRect(i,j,1.0f,1.0f,hillColour);
+                viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f},pathColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
+                break;
+            case 13://Top Left + Top Right + Bottom Left = Inverted Bottom Right
+                viewer.FillRect(i,j,1.0f,1.0f,hillColour);
+                viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},pathColour);
+                viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
+                break;
+            case 12://Top Left + Top Right = Top Half
+                viewer.FillRect(i,j,1.0f,0.5f,hillColour);
+                viewer.FillRect(i,j+0.5f,1.0f,0.5f,pathColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+1.0f,j+0.5f},wallColour);
+                break;
+            case 11://Top Left + Bottom Right + Bottom Left = Invert Top Right 
+                viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},pathColour);
+                viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
+                break;
+            case 10://Top Left + Bottom Right = Special Case: Opposite Corners
+                viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},pathColour);
+                viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f},pathColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
+                viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
+                break;
+            case 9://Top Left + Bottom Left = left half
+                viewer.FillRect(i,j,0.5f,1.0f,hillColour);
+                viewer.FillRect(i+0.5f,j,0.5f,1.0f,pathColour);
+                viewer.DrawLine({i+0.5f,j+0.0f},{i+0.5f,j+1.0f},wallColour);
+                break;
+            case 8://Top Left
+                viewer.FillRect(i,j,01.0f,1.0f,pathColour);
+                viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},hillColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
+                break;
+            case 7://Top Right + Bottom Right + Bottom Left = Inverte Top Left
+                viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},pathColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
+                break;
+            case 6://Top Right + Bottom Right = Right Side
+                viewer.FillRect(i,j,0.5f,1.0f,pathColour);
+                viewer.FillRect(i+0.5f,j,0.5f,1.0f,hillColour);
+                viewer.DrawLine({i+0.5f,j+0.0f},{i+0.5f,j+1.0f},wallColour);
+                break;
+            case 5://Top Right + Bottom Left = Special Case: Opposite Corners
+                viewer.FillRect(i,j,01.0f,1.0f,hillColour);
+                
+                viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},pathColour);
+                viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},pathColour );
+                
+                viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
+                break;
+            case 4://Top Right
+                viewer.FillRect(i,j,01.0f,1.0f,pathColour);
+                viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},hillColour);
+                viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
+                break;
+            case 3://Bottom Right + Bottom Left = bottom half
+                viewer.FillRect(i,j,1.0f,0.5f,pathColour);
+                viewer.FillRect(i,j+0.5f,1.0f,0.5f,hillColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+1.0f,j+0.5f},wallColour);
+                break;
+            case 2://Bottom Right
+                viewer.FillRect(i,j,1.0f,1.0f,pathColour);
+                viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},hillColour );
+                viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
+                break;
+            case 1://Bottom Left
+                viewer.FillRect(i,j,1.0f,1.0f,pathColour);
+                viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f}, hillColour);
+                viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
+                break;
+            case 0://No Walls = Floor Tile
+                viewer.FillRect(i,j,1.0f,1.0f,pathColour);//33 2D 1A
+                break;
+        }
+    }
+    
+    void terrainDraw(){
+        auto tpStart = std::chrono::system_clock::now();
+        olc::vf2d tl = viewer.GetTopLeftTile();
+        olc::vf2d br = viewer.GetBottomRightTile();
+
+
         for(int j = max(0,int(tl.y));j < min(int(br.y),arenaSize-1); j++){
         
-            for(int i = max(0,int(tl.x));i < min(int(br.x),arenaSize-1); i++){
+            for(int i = max(0,int(tl.x));i < min(int(br.x),arenaSize-1);i++){
+ 
                 // depth Top/Left/Right/Bottom
                 float dTL = arenaBoard[i  ][j  ];
                 float dTR = arenaBoard[i+1][j  ];
                 float dBR = arenaBoard[i+1][j+1];
                 float dBL = arenaBoard[i  ][j+1];
-                int wallType = 0;
-                if (dTL > threshold){
-                    wallType += 8;
-                }
-                if (dTR > threshold){
-                    wallType += 4;
-                }
-                if (dBR > threshold){
-                    wallType += 2;
-                }
-                if (dBL > threshold){
-                    wallType += 1;
-                }
-                switch(wallType){
-                    case 15:// All Four Corners = Solid Land
-                        viewer.FillRect(i,j,1.0f,1.0f,hillColour);
-                        break;
-                    case 14://Top Left + Top Right + Bottom Right = Inverted Bottom Left
-                        viewer.FillRect(i,j,1.0f,1.0f,hillColour);
-                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f},pathColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
-                        break;
-                    case 13://Top Left + Top Right + Bottom Left = Inverted Bottom Right
-                        viewer.FillRect(i,j,1.0f,1.0f,hillColour);
-                        viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},pathColour);
-                        viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
-                        break;
-                    case 12://Top Left + Top Right = Top Half
-                        viewer.FillRect(i,j,1.0f,0.5f,hillColour);
-                        viewer.FillRect(i,j+0.5f,1.0f,0.5f,pathColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+1.0f,j+0.5f},wallColour);
-                        break;
-                    case 11://Top Left + Bottom Right + Bottom Left = Invert Top Right 
-                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
-                        viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},pathColour);
-                        viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
-                        break;
-                    case 10://Top Left + Bottom Right = Special Case: Opposite Corners
-                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
-                        viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},pathColour);
-                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f},pathColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
-                        viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
-                        break;
-                    case 9://Top Left + Bottom Left = left half
-                        viewer.FillRect(i,j,0.5f,1.0f,hillColour);
-                        viewer.FillRect(i+0.5f,j,0.5f,1.0f,pathColour);
-                        viewer.DrawLine({i+0.5f,j+0.0f},{i+0.5f,j+1.0f},wallColour);
-                        break;
-                    case 8://Top Left
-                        viewer.FillRect(i,j,01.0f,1.0f,pathColour);
-                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},hillColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
-                        break;
-                    case 7://Top Right + Bottom Right + Bottom Left = Inverte Top Left
-                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
-                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},pathColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
-                        break;
-                    case 6://Top Right + Bottom Right = Right Side
-                        viewer.FillRect(i,j,0.5f,1.0f,pathColour);
-                        viewer.FillRect(i+0.5f,j,0.5f,1.0f,hillColour);
-                        viewer.DrawLine({i+0.5f,j+0.0f},{i+0.5f,j+1.0f},wallColour);
-                        break;
-                    case 5://Top Right + Bottom Left = Special Case: Opposite Corners
-                        viewer.FillRect(i,j,01.0f,1.0f,hillColour);
-                        
-                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},{i+0.0f,j+0.0f},pathColour);
-                        viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},pathColour );
-                        
-                        viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+0.0f},wallColour);
-                        break;
-                    case 4://Top Right
-                        viewer.FillRect(i,j,01.0f,1.0f,pathColour);
-                        viewer.FillTriangle({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},{i+1.0f,j+0.0f},hillColour);
-                        viewer.DrawLine({i+0.5f,j+0.0f},{i+1.0f,j+0.5f},wallColour);
-                        break;
-                    case 3://Bottom Right + Bottom Left = bottom half
-                        viewer.FillRect(i,j,1.0f,0.5f,pathColour);
-                        viewer.FillRect(i,j+0.5f,1.0f,0.5f,hillColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+1.0f,j+0.5f},wallColour);
-                        break;
-                    case 2://Bottom Right
-                        viewer.FillRect(i,j,1.0f,1.0f,pathColour);
-                        viewer.FillTriangle({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},{i+1.0f,j+1.0f},hillColour );
-                        viewer.DrawLine({i+1.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
-                        break;
-                    case 1://Bottom Left
-                        viewer.FillRect(i,j,1.0f,1.0f,pathColour);
-                        viewer.FillTriangle({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},{i+0.0f,j+1.0f}, hillColour);
-                        viewer.DrawLine({i+0.0f,j+0.5f},{i+0.5f,j+1.0f},wallColour);
-                        break;
-                    case 0://No Walls = Floor Tile
-                        viewer.FillRect(i,j,1.0f,1.0f,pathColour);//33 2D 1A
-                        break;
-                }
+                
+                cellFill(i,j,dTL,dTR,dBR,dBL);
+              
             }
         }
-        
-        
-        olc::vf2d northBaseLoc = localMinima(floor(arenaSize * 0.3f),floor(arenaSize * 0.05f),ceil(arenaSize * 0.7f),floor(arenaSize * 0.2f));
-        
 
-        viewer.DrawRect(northBaseLoc,{0.5f,0.5f},olc::YELLOW);
+        
+        std::chrono::duration<float> dur = std::chrono::system_clock::now() - tpStart;
+        DrawString(5,90, "GroundDraw:" + to_string(dur.count()),olc::WHITE,1.0f);
+        
   
     }
     
