@@ -19,10 +19,12 @@ struct StatBlock
 };
 
 class Unit{
-    public:
+    protected:
+        olc::TileTransformedView* transview;
+    
         enum Shape {SQUARE,CIRCLE};
         olc::vf2d location;
-        olc::TileTransformedView* transview;
+        
         olc::Pixel TeamColour;
         olc::vf2d area;
         float size;
@@ -33,25 +35,31 @@ class Unit{
         
         StatBlock stats;
         
-                
+    public:
         virtual void draw(){};
         virtual string update(float t){return "";};
         virtual void collectUnits(vector<Unit*> &allStructure,vector<Unit*> &allPeronal){};
         virtual olc::vf2d checkCollide(Unit* other){return {0,0};};
         virtual float checkAttack(Unit* other){return 0.0f;};
+        virtual Shape getShape(){return shape;}
+        virtual olc::vf2d getLocation(){return location;}
+        virtual olc::vf2d getArea(){return area;}
+        virtual float getSize(){return size;}
+        virtual float getTeam(){return team;}
+        
 };
 
 class Soldier : public Unit{
-    public:
-    
+    private:
         Team target;
         
-        
+    public:
+
         Soldier(olc::vf2d newlocation,float newSize,Team myTeam,olc::Pixel newTeamColour,
             olc::TileTransformedView* newtransview,Team goal)
         
         {
-            location = newlocation;
+            this->location = newlocation;
             location.x = min(max(location.x,0.0f),float(arenaSize));
             location.y = min(max(location.y,0.0f),float(arenaSize));
             size = newSize;
@@ -127,11 +135,11 @@ class Soldier : public Unit{
         }
         
         olc::vf2d checkCollide(Unit* other) override{
-            if(other->shape == SQUARE){
+            if(other->getShape() == SQUARE){
                 //building collision check
-                olc::vf2d center = other->location;
-                olc::vf2d topleft = other->location - (other->area * 0.5f);
-                olc::vf2d botright = other->location + (other->area * 0.5f);
+                olc::vf2d center = other->getLocation();
+                olc::vf2d topleft = other->getLocation() - (other->getArea() * 0.5f);
+                olc::vf2d botright = other->getLocation() + (other->getArea() * 0.5f);
                 
                 olc::vf2d nearest = {min(max(location.x,topleft.x),botright.x),
                                      min(max(location.y,topleft.y),botright.y)};
@@ -149,23 +157,22 @@ class Soldier : public Unit{
                 
                 return {0,0};
             }
-            if(other->shape == CIRCLE){
+            if(other->getShape() == CIRCLE){
                 // Unit collision Checking
-                float colDist = other->size + size;
-                float xDist = abs(other->location.x - location.x);
-                float yDist = abs(other->location.y - location.y);
+                float colDist = other->getSize() + size;
+                olc::vf2d otherLoc = other->getLocation();
+                float xDist = abs(otherLoc.x - location.x);
+                float yDist = abs(otherLoc.y - location.y);
                 
                 if (colDist * colDist < xDist * xDist + yDist * yDist)
                     return {0,0};
-                olc::vf2d direction = location - other->location;
+                olc::vf2d direction = location - other->getLocation();
                 float overlap = colDist - direction.mag();
                 location += direction.norm() * overlap * 0.5f;
                 
             location.x = min(max(location.x,0.0f),float(arenaSize));
             location.y = min(max(location.y,0.0f),float(arenaSize));
-                other->location -= direction.norm() * overlap * 0.5f;
-            other->location.x = min(max(other->location.x,0.0f),float(arenaSize));
-            other->location.y = min(max(other->location.y,0.0f),float(arenaSize));
+            
                 
                 return direction.norm() * overlap;
                 
@@ -215,10 +222,10 @@ class Building : public Unit{
 };
 
 class Capital : public Unit{
-    public:
-        
+
+    protected:
         vector<Unit*> buildings;
-        
+    public:
         Capital(olc::vf2d newlocation,olc::vf2d newArea,Team myTeam,
                 olc::TileTransformedView* newtransview,olc::Pixel newTeamColour){
             location = newlocation;
@@ -283,7 +290,15 @@ class Capital : public Unit{
             }
             
         };
-        
+         
+        std::list<olc::vf2d> buildingLocations(){
+            std::list<olc::vf2d> locations;
+            for(int b = 0; b < buildings.size();b++){
+                locations.push_back(buildings[b]->getLocation());
+            }
+            return locations;
+            
+        }
         //~ olc::vf2d checkCollide(Unit* other) override{
             //~ return {0,0};
         //~ } 

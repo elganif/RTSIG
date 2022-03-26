@@ -171,9 +171,9 @@ public:
         initializeBases();
         
         // Check Valid Pathing exists
-        while(!aStarExists(northForces->location,southForces->location,westForces->location.x,0,eastForces->location.x,arenaSize))
+        while(!aStarExists(northForces->getLocation(),southForces->getLocation(),westForces->getLocation().x,0,eastForces->getLocation().x,arenaSize))
             threshold+=0.01f;
-        while(!aStarExists(westForces->location,eastForces->location,0,northForces->location.y,arenaSize,southForces->location.y))
+        while(!aStarExists(westForces->getLocation(),eastForces->getLocation(),0,northForces->getLocation().y,arenaSize,southForces->getLocation().y))
             threshold+=0.01f;
         
         
@@ -183,8 +183,7 @@ public:
         buildVectorField(eastForces,eastDistVec);
         buildVectorField(southForces,southDistVec);
         
-        //testSoldier = new Soldier(localMinima(25,25,75,75) + mover,0.2f,olc::Pixel(250,0,250),&viewer,WEST);
-        //testSoldiertwo = new Soldier(localMinima(25,25,75,75),0.2f,olc::Pixel(250,0,250),&viewer,WEST);
+
         SetDrawTarget(PlayLayerDraw);
             Clear(olc::VERY_DARK_BLUE);
             terrainDraw();
@@ -193,8 +192,7 @@ public:
     }
     
     void arena(){
-        //terrainBuild(); // For debuggin map math
-        //checkPanZoom();
+        
         if(checkPanZoom()){
             SetDrawTarget(PlayLayerDraw);
             Clear(olc::VERY_DARK_BLUE);
@@ -226,17 +224,18 @@ public:
         
 
         for(int i = 0; i< allPersonal.size(); i++){
-            for(int j = i+1; j < allPersonal.size(); j++){
-                
+            for(int j = 0; j < allPersonal.size(); j++){
+                if (i == j) 
+                    continue;
                 allPersonal[i]->checkCollide(allPersonal[j]);
-                if (allPersonal[i]->team != allPersonal[j]->team){
+                if (allPersonal[i]->getTeam() != allPersonal[j]->getTeam()){
                     allPersonal[i]->checkAttack(allPersonal[j]);
                 }
                 
             }
             for(int k = 0; k < allStructures.size(); k++){
                 allPersonal[i]->checkCollide(allStructures[k]);
-                if (allPersonal[i]->team != allStructures[k]->team){
+                if (allPersonal[i]->getTeam() != allStructures[k]->getTeam()){
                     allPersonal[i]->checkAttack(allStructures[k]);
                 }
             }
@@ -533,19 +532,20 @@ DrawString(5,80, "Units Updates:" + to_string(dur.count()),olc::WHITE,1.0f);
             }
         }
         
-        list<olc::vf2d> nodes;
+        list<olc::vf2d> nodes = capital->buildingLocations();;
         olc::vf2d thisNode;
         float pendingValue;
         
-        olc::vf2d nextNode = capital->location;
+
+        olc::vf2d nextNode = capital->getLocation();
         vecField[int(nextNode.x)][int(nextNode.y)] = 0;
         nodes.push_back(nextNode);
         
-        for(int b = 0; b < capital->buildings.size();b++){
-            nextNode = capital->buildings[b]->location;
-            vecField[int(nextNode.x)][int(nextNode.y)] = 1;
-            nodes.push_back(nextNode);
-        }
+        //~ for(int b = 0; b < capital->buildings.size();b++){
+            //~ nextNode = capital->buildings[b]->getLocation();
+            //~ vecField[int(nextNode.x)][int(nextNode.y)] = 1;
+            //~ nodes.push_back(nextNode);
+        //~ }
         while(nodes.size() > 0){
             thisNode = nodes.front();
             nodes.pop_front();
